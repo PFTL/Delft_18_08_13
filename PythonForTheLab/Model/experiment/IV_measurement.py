@@ -21,13 +21,11 @@ class Experiment:
     def __init__(self):
         self.daq = None
         self.properties = {}
-        self.stop_monitor = False
         self.xdata = np.zeros(0)
         self.ydata = np.zeros(0)
         self.xdata_scan = np.zeros(0)
         self.ydata_scan = np.zeros(0)
         self.running_scan = False
-        self.stop_scan = False
         self.delta_x = 0
         self.t0 = time()
 
@@ -62,32 +60,12 @@ class Experiment:
         self.ydata_scan = np.zeros(num_points) * units
         i = 0
         self.running_scan = True
-        self.stop_scan = False
         for value in scan:
-            if self.stop_scan:
-                break
             self.daq.set_analog_value(int(channel_out), value)
             sleep(delay.m_as('s'))
             self.ydata_scan[i] = self.daq.get_analog_value(int(channel_in))
             i += 1
         self.running_scan = False
-
-    def monitor_signal(self):
-        """Monitors a signal in a specific port. Doesn't take any parameters, it assumes there is
-        well-configured dictionary called self.properties['Monitor']
-        """
-        delay = Q_(self.properties['Monitor']['time_resolution'])
-        total_time = Q_(self.properties['Monitor']['total_time']).m_as('s')
-        self.xdata = np.zeros((round(total_time / delay.m_as('s'))))
-        self.delta_x = delay.m_as('s')
-        self.ydata = np.zeros(int(total_time / delay.m_as('s')))
-        self.t0 = time()
-        while not self.stop_monitor:
-            self.ydata = np.roll(self.ydata, -1)
-            self.ydata[-1] = self.read_analog(1).m_as('V')
-            self.xdata = np.roll(self.xdata, -1)
-            self.xdata[-1] = time() - self.t0  # self.xdata[-2] + self.delta_x
-            sleep(delay.m_as('s'))
 
     def load_config(self, filename=None):
         """Loads the configuration file to generate the properties of the Scan and Monitor.
